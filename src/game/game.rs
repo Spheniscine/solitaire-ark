@@ -1,3 +1,4 @@
+use core::num;
 use std::time::Duration;
 
 use rand::{Rng, seq::SliceRandom};
@@ -108,6 +109,10 @@ impl GameState {
         back == front
     }
 
+    fn is_stack(&self, slice: &[Card]) -> bool {
+        slice.windows(2).all(|w| self.can_stack(w[0], w[1]))
+    }
+
     pub fn can_select(&self, pos: BoardPos) -> bool {
         let depot = pos.depot_index;
         let ord = pos.card_index;
@@ -121,7 +126,7 @@ impl GameState {
         match role {
             DepotRole::FreeCell => { slice.len() <= 1 },
             DepotRole::Tableau => {
-                slice.windows(2).all(|w| self.can_stack(w[0], w[1]))
+                self.is_stack(slice)
             },
             DepotRole::Shadow => false,
         }
@@ -166,15 +171,92 @@ impl GameState {
                 return;
             }
 
-            // let dest = BoardPos::new(pos.depot_index, pos.card_index.wrapping_add(1));
-            // if !self.can_move(src, dest) { return; }
-            // self.board.do_move(src, dest);
-            // self.history.push(ActionRecord { pos1: src, pos2: dest, auto: false });
+            let dest = BoardPos::new(pos.depot_index, pos.card_index.wrapping_add(1));
+            self.move_intent(src, dest);
         } else {
             if self.can_select(pos) {
                 self.board.selected = Some(pos);
             }
         }
+    }
+
+    fn do_move_raw(&mut self, pos1: BoardPos, pos2: BoardPos) {
+        self.board.do_move(pos1, pos2);
+        self.history.push(ActionRecord { pos1, pos2 })
+    }
+
+    pub fn move_intent(&mut self, pos1: BoardPos, pos2: BoardPos) -> bool {
+        if pos1.depot_index == pos2.depot_index { return false; }
+        let depot1 = &self.board.depots[pos1.depot_index];
+        let depot2 = &self.board.depots[pos2.depot_index];
+        let num_moved = depot1.len() - pos1.card_index;
+        if pos2.card_index != depot2.len() { return false; }
+
+        let card = depot1[pos1.card_index];
+        let Some(role) = DepotRole::role(pos2.depot_index) else { return false };
+        if role == DepotRole::Shadow { return false; }
+        let shadow1 = DepotRole::Shadow.id(pos1.depot_index);
+        let shadow2 = DepotRole::Shadow.id(pos2.depot_index);
+        if !self.board.depots[shadow2].is_empty() { return false; }
+
+        let history_len = self.history.len();
+        let len2 = depot2.len();
+        match role {
+            DepotRole::FreeCell => {
+                match len2 + num_moved {
+                    1 => {
+                        self.do_move_raw(pos1, pos2);
+                    }
+                    NUM_COPIES => {
+                        let ok = depot2.last().is_none_or(|&c| self.can_stack(c, card));
+                        if !ok { return false; }
+
+                        if len2 != 0 {
+                            self.do_move_raw(
+                                BoardPos::new(pos2.depot_index, 0),
+                                BoardPos::new(shadow2, 0)
+                            );
+                        }
+                        self.do_move_raw(
+                            pos1,
+                            BoardPos::new(shadow2, len2)
+                        );
+                    }
+                    _ => {return false}
+                }
+            },
+            DepotRole::Tableau => {
+                let ok = depot2.last().is_none_or(|&c| self.can_stack(c, card));
+                if !ok { return false; }
+
+                if len2 + num_moved == NUM_COPIES && self.is_stack(&depot2) {
+                    if len2 != 0 {
+                        self.do_move_raw(
+                            BoardPos::new(pos2.depot_index, 0),
+                            BoardPos::new(shadow2, 0)
+                        );
+                    }
+                    self.do_move_raw(
+                        pos1,
+                        BoardPos::new(shadow2, len2)
+                    );
+                } else {
+                    self.do_move_raw(pos1, pos2);
+                }
+            },
+            DepotRole::Shadow => return false,
+        }
+
+        let depot1 = &self.board.depots[pos1.depot_index];
+        if depot1.len() == NUM_COPIES && self.is_stack(&depot1) {
+            self.do_move_raw(
+                BoardPos::new(pos1.depot_index, 0),
+                BoardPos::new(shadow1, 0),
+            );
+        }
+
+        self.undo_stack.push(history_len);
+        true
     }
 
     pub fn ondoubleclick(&mut self, pos: BoardPos) {
