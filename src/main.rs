@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use glam::Vec2;
 
-use crate::{components::CardComponent, game::{RANKS, Skin}};
+use crate::{components::{BoardComponent, CardComponent}, game::{Board, BoardPos, DepotRole, RANKS, Skin}};
 
 mod game;
 mod components;
@@ -20,6 +20,20 @@ fn main() {
 #[component]
 fn App() -> Element {
     rsx! {
+        document::Link {
+            rel: "preconnect",
+            href: "https://fonts.googleapis.com",
+        }
+        document::Link {
+            rel: "preconnect",
+            href: "https://fonts.gstatic.com",
+            crossorigin: "anonymous",
+        }
+        document::Link {
+            href: "https://fonts.googleapis.com/css2?family=Noto+Emoji:wght@300..700&family=Noto+Sans+Symbols+2&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap",
+            rel: "stylesheet",
+        }
+
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Style {
@@ -40,17 +54,19 @@ fn App() -> Element {
 #[component]
 pub fn Hero() -> Element {
     let skin = Skin::Animals;
+    let mut board = Board::empty();
+    board.depots[DepotRole::Tableau.id(0)] = (2..10).collect();
+    // board.selected = Some(BoardPos::new(DepotRole::Tableau.id(0), 3));
     rsx! {
         div {
             id: "hero",
+            class: "select-none",
             
-            for card in RANKS {
-                CardComponent { 
-                    position: Vec2::new(40., 14. * card as f32),
-                    width: 13.,
-                    card,
-                    skin,
-                }
+            BoardComponent { 
+                position: Vec2::new(0., 20.),
+                board,
+                skin,
+                num_freecells_unlocked: 2,
             }
         }
     }
