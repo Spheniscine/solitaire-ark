@@ -3,7 +3,7 @@ use std::time::Duration;
 use rand::{Rng, seq::SliceRandom};
 use serde::{Deserialize, Serialize};
 
-use crate::game::{Board, BoardPos, Card, DECK_SIZE, NUM_COPIES, RANKS, Skin};
+use crate::game::{Board, BoardPos, Card, DECK_SIZE, DepotRole, NUM_COPIES, NUM_FREECELLS, RANKS, Skin};
 
 /* 
  * Notes:
@@ -27,9 +27,27 @@ pub enum ScreenState {
     Settings, Help,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default, strum_macros::Display)]
+pub enum Difficulty {
+    #[default] Easy, 
+    Medium, Hard, Expert,
+}
+
+impl Difficulty {
+    pub fn base_freecells_unlocked(&self) -> usize {
+        match self {
+            Difficulty::Easy => 4,
+            Difficulty::Medium => 3,
+            Difficulty::Hard => 2,
+            Difficulty::Expert => 1,
+        }
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct GameState {
     pub board: Board,
+    pub difficulty: Difficulty,
     pub deal: Vec<Card>,
     #[serde(skip)]
     pub animation_key: AnimationKey, // used for syncing and to provide animator components with cycling keys
@@ -55,19 +73,21 @@ impl GameState {
         deck
     }
 
-    pub fn new_game(&mut self) {
+    pub fn new_game(&mut self, difficulty: Difficulty) {
         let deal = Self::new_deal(&mut rand::rng());
         self.board = Board::from_deal(&deal);
         self.deal = deal;
         self.history.clear();
         self.undo_stack.clear();
         self.already_won = false;
+        self.difficulty = difficulty;
         // LocalStorage.save_game_state(&self);
     }
 
     pub fn init() -> Self {
         let mut res = Self {
             board: Board::empty(),
+            difficulty: Difficulty::Easy,
             deal: vec![],
             animation_key: 0,
             history: vec![],
@@ -80,12 +100,31 @@ impl GameState {
             skin: Skin::default(),
         };
 
-        res.new_game();
+        res.new_game(Difficulty::Hard);
         res
     }
 
     pub fn can_stack(&self, back: Card, front: Card) -> bool {
         back == front
+    }
+
+    pub fn can_select(&self, pos: BoardPos) -> bool {
+        let depot = pos.depot_index;
+        let ord = pos.card_index;
+
+        if ord >= self.board.depots[depot].len() {
+            return false;
+        }
+        let slice = &self.board.depots[depot][ord..];
+
+        let Some(role) = DepotRole::role(depot) else { return false };
+        match role {
+            DepotRole::FreeCell => { slice.len() <= 1 },
+            DepotRole::Tableau => {
+                slice.windows(2).all(|w| self.can_stack(w[0], w[1]))
+            },
+            DepotRole::Shadow => false,
+        }
     }
 
     pub fn is_busy(&self) -> bool {
@@ -94,6 +133,16 @@ impl GameState {
 
     pub fn is_acting(&self) -> bool {
         !self.board.animation_acts.is_empty()
+    }
+
+    pub fn num_freecells_unlocked(&self) -> usize {
+        NUM_FREECELLS.min(
+            self.difficulty.base_freecells_unlocked() + 
+            DepotRole::Tableau.range().filter(|&d| {
+                let s = DepotRole::Shadow.id(d);
+                !self.board.depots[s].is_empty()
+            }).count()
+        )
     }
 
     pub fn is_won(&self) -> bool {
@@ -107,7 +156,25 @@ impl GameState {
     pub fn onclick(&mut self, pos: BoardPos) {
         if self.is_busy() { return; }
 
-        // todo
+        if let Some(src) = self.board.selected {
+            if pos == src { 
+                self.board.selected = None; 
+                return;
+            }
+            if src.depot_index == pos.depot_index && self.can_select(pos) {
+                self.board.selected = Some(pos);
+                return;
+            }
+
+            // let dest = BoardPos::new(pos.depot_index, pos.card_index.wrapping_add(1));
+            // if !self.can_move(src, dest) { return; }
+            // self.board.do_move(src, dest);
+            // self.history.push(ActionRecord { pos1: src, pos2: dest, auto: false });
+        } else {
+            if self.can_select(pos) {
+                self.board.selected = Some(pos);
+            }
+        }
     }
 
     pub fn ondoubleclick(&mut self, pos: BoardPos) {

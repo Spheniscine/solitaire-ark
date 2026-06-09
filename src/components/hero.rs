@@ -61,7 +61,7 @@ pub fn Hero() -> Element {
                     width: rem(48.),
                     color: "#fff",
 
-                    "Ark (Hard)",
+                    "Ark ({st.difficulty})",
                     br {},
                     "Wins: {st.num_wins}",
                 }
@@ -110,7 +110,7 @@ pub fn Hero() -> Element {
                     ondoubleclick: move |pos| if clean {state.write().ondoubleclick(pos);},
                     animation_key: st.animation_key,
                     is_won: st.is_won(),
-                    num_freecells_unlocked: 2, // todo
+                    num_freecells_unlocked: st.num_freecells_unlocked(),
                 }
             } else if st.screen_state == ScreenState::Settings {
                 // Settings { 
