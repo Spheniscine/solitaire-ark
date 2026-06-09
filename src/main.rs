@@ -1,7 +1,6 @@
 use dioxus::prelude::*;
-use glam::Vec2;
 
-use crate::{components::{BoardComponent, CardComponent}, game::{Board, BoardPos, DepotRole, RANKS, Skin}};
+use crate::components::Hero;
 
 mod game;
 mod components;
@@ -10,6 +9,9 @@ const FAVICON: Asset = asset!("/assets/favicon.ico");
 
 // altered version of KaTeX_Main to include filled "red" suits
 const KATEX_SUITS: Asset = asset!("/assets/KaTeX_Suits.woff2");
+
+// from https://www.confettijs.org/
+const CONFETTI_JS: Asset = asset!("/assets/confetti.min.js");
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 
@@ -46,28 +48,8 @@ fn App() -> Element {
             }}
             "#,
         }
+        document::Script { src: CONFETTI_JS }
         Hero {}
 
-    }
-}
-
-#[component]
-pub fn Hero() -> Element {
-    let skin = Skin::Animals;
-    let mut board = Board::empty();
-    board.depots[DepotRole::Tableau.id(0)] = (2..10).collect();
-    // board.selected = Some(BoardPos::new(DepotRole::Tableau.id(0), 3));
-    rsx! {
-        div {
-            id: "hero",
-            class: "select-none",
-            
-            BoardComponent { 
-                position: Vec2::new(0., 20.),
-                board,
-                skin,
-                num_freecells_unlocked: 2,
-            }
-        }
     }
 }
