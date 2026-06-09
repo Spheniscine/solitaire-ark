@@ -195,7 +195,7 @@ impl GameState {
         if pos2.card_index != depot2.len() { return false; }
 
         let card = depot1[pos1.card_index];
-        let Some(role) = DepotRole::role(pos2.depot_index) else { return false };
+        let Some((role, ix)) = DepotRole::role_and_subindex(pos2.depot_index) else { return false };
         if role == DepotRole::Shadow { return false; }
         let shadow1 = DepotRole::Shadow.id(pos1.depot_index);
         let shadow2 = DepotRole::Shadow.id(pos2.depot_index);
@@ -205,6 +205,7 @@ impl GameState {
         let len2 = depot2.len();
         match role {
             DepotRole::FreeCell => {
+                if ix >= self.num_freecells_unlocked() { return false; }
                 match len2 + num_moved {
                     1 => {
                         self.do_move_raw(pos1, pos2);
