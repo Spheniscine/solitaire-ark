@@ -304,4 +304,10 @@ impl GameState {
 
         // if !self.is_busy() { LocalStorage.save_game_state(&self); }
     }
+
+    pub fn _test_rare_4_of_a_kind_move_away(&mut self) {
+        self.board = Board::empty();
+        self.board.depots[DepotRole::Tableau.id(0)] = vec![0, 0, 0, 0, 1];
+        self.board.depots[DepotRole::Tableau.id(1)] = vec![1, 1, 1];
+    }
 }
