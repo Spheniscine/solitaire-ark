@@ -185,7 +185,7 @@ impl GameState {
         self.history.push(ActionRecord { pos1, pos2 })
     }
 
-    pub fn move_intent(&mut self, pos1: BoardPos, pos2: BoardPos) -> bool {
+    fn move_intent(&mut self, pos1: BoardPos, pos2: BoardPos) -> bool {
         if pos1.depot_index == pos2.depot_index { return false; }
         let depot1 = &self.board.depots[pos1.depot_index];
         let depot2 = &self.board.depots[pos2.depot_index];
@@ -263,6 +263,25 @@ impl GameState {
         if self.is_busy() { return; }
         
         // todo
+    }
+
+    pub fn undo(&mut self) {
+        if self.is_busy() || !self.undo_possible() { return; }
+        let Some(target_len) = self.undo_stack.pop() else {return};
+        while self.history.len() > target_len {
+            let rec = self.history.pop().unwrap();
+            self.board.do_move(rec.pos2, rec.pos1);
+            self.board.advance_actions(); // no animation, as repeated card moves on same card causes problems
+        }
+        // LocalStorage.save_game_state(&self);
+    }
+
+    pub fn restart(&mut self) {
+        if self.history.is_empty() || !self.undo_possible() { return; }
+        self.board = Board::from_deal(&self.deal);
+        self.history.clear();
+        self.undo_stack.clear();
+        // LocalStorage.save_game_state(&self);
     }
 
     pub fn advance_animations(&mut self, key: AnimationKey) {

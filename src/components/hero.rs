@@ -80,7 +80,7 @@ pub fn Hero() -> Element {
                     top: rem(1.5),
                     right: rem(30.),
                     class: if st.undo_possible() {"game-button"} else {"game-button-disabled"},
-                    // onclick: move |_| if clean {state.write().restart()},
+                    onclick: move |_| if clean {state.write().restart()},
                     "Reset"
                 }
 
@@ -98,7 +98,7 @@ pub fn Hero() -> Element {
                     top: rem(11.),
                     right: rem(30.),
                     class: if st.undo_possible() {"game-button"} else {"game-button-disabled"},
-                    // onclick: move |_| if clean {state.write().undo()},
+                    onclick: move |_| if clean {state.write().undo()},
                     "Undo"
                 }
 
