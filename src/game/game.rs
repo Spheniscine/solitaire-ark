@@ -264,8 +264,12 @@ impl GameState {
 
     pub fn ondoubleclick(&mut self, pos: BoardPos) {
         if self.is_busy() { return; }
-        
-        // todo
+        if !self.can_select(pos) { return; } // needed, or illegal stacks can still be moved this way!
+
+        for dest in DepotRole::FreeCell.range() {
+            let dest = BoardPos::new(dest, self.board.depots[dest].len());
+            if self.move_intent(pos, dest) { return; }
+        }
     }
 
     pub fn undo(&mut self) {
