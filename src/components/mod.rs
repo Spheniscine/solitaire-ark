@@ -19,8 +19,11 @@ pub use hero::*;
 // mod settings;
 // pub use settings::*;
 
-// mod local_storage;
-// pub use local_storage::LocalStorage;
+mod new_game;
+pub use new_game::*;
+
+mod local_storage;
+pub use local_storage::LocalStorage;
 
 mod emoji;
 pub use emoji::*;

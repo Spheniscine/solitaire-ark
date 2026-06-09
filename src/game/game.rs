@@ -4,7 +4,7 @@ use std::time::Duration;
 use rand::{Rng, seq::SliceRandom};
 use serde::{Deserialize, Serialize};
 
-use crate::game::{Board, BoardPos, Card, DECK_SIZE, DepotRole, NUM_COPIES, NUM_FREECELLS, NUM_RANKS, RANKS, Skin};
+use crate::{components::LocalStorage, game::{Board, BoardPos, Card, DECK_SIZE, DepotRole, NUM_COPIES, NUM_FREECELLS, NUM_RANKS, RANKS, Skin}};
 
 /* 
  * Notes:
@@ -25,10 +25,10 @@ pub struct ActionRecord {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum ScreenState {
     #[default] Game, 
-    Settings, Help,
+    Settings, NewGame, Help,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default, strum_macros::Display)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default, strum_macros::Display, PartialOrd, Ord)]
 pub enum Difficulty {
     #[default] Easy, 
     Medium, Hard, Expert,
@@ -43,12 +43,22 @@ impl Difficulty {
             Difficulty::Expert => 1,
         }
     }
+
+    pub fn next_up(&self) -> Difficulty {
+        match self {
+            Difficulty::Easy => Difficulty::Medium,
+            Difficulty::Medium => Difficulty::Hard,
+            Difficulty::Hard => Difficulty::Expert,
+            Difficulty::Expert => Difficulty::Expert,
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct GameState {
     pub board: Board,
     pub difficulty: Difficulty,
+    pub max_difficulty: Difficulty,
     pub deal: Vec<Card>,
     #[serde(skip)]
     pub animation_key: AnimationKey, // used for syncing and to provide animator components with cycling keys
@@ -74,7 +84,11 @@ impl GameState {
         deck
     }
 
-    pub fn new_game(&mut self, difficulty: Difficulty) {
+    pub fn new_game(&mut self) {
+        self.screen_state = ScreenState::NewGame;
+    }
+
+    pub fn new_game_with_difficulty(&mut self, difficulty: Difficulty) {
         let deal = Self::new_deal(&mut rand::rng());
         self.board = Board::from_deal(&deal);
         self.deal = deal;
@@ -82,13 +96,15 @@ impl GameState {
         self.undo_stack.clear();
         self.already_won = false;
         self.difficulty = difficulty;
-        // LocalStorage.save_game_state(&self);
+        self.screen_state = ScreenState::Game;
+        LocalStorage.save_game_state(&self);
     }
 
     pub fn init() -> Self {
         let mut res = Self {
             board: Board::empty(),
             difficulty: Difficulty::Easy,
+            max_difficulty: Difficulty::Easy,
             deal: vec![],
             animation_key: 0,
             history: vec![],
@@ -101,7 +117,7 @@ impl GameState {
             skin: Skin::default(),
         };
 
-        res.new_game(Difficulty::Medium);
+        res.new_game_with_difficulty(Difficulty::Easy);
         res
     }
 
@@ -280,7 +296,7 @@ impl GameState {
             self.board.do_move(rec.pos2, rec.pos1);
             self.board.advance_actions(); // no animation, as repeated card moves on same card causes problems
         }
-        // LocalStorage.save_game_state(&self);
+        LocalStorage.save_game_state(&self);
     }
 
     pub fn restart(&mut self) {
@@ -288,7 +304,7 @@ impl GameState {
         self.board = Board::from_deal(&self.deal);
         self.history.clear();
         self.undo_stack.clear();
-        // LocalStorage.save_game_state(&self);
+        LocalStorage.save_game_state(&self);
     }
 
     pub fn advance_animations(&mut self, key: AnimationKey) {
@@ -302,11 +318,14 @@ impl GameState {
                 self.num_wins += 1;
                 self.already_won = true;
             }
+            if self.difficulty >= self.max_difficulty {
+                self.max_difficulty = self.max_difficulty.next_up();
+            }
         } else {
             // self.check_auto_moves();
         }
 
-        // if !self.is_busy() { LocalStorage.save_game_state(&self); }
+        if !self.is_busy() { LocalStorage.save_game_state(&self); }
     }
 
     pub fn _test_rare_4_of_a_kind_move_away(&mut self) {
