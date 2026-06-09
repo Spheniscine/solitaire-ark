@@ -40,7 +40,7 @@ pub fn CardComponent<C: PartialEq + Clone + 'static, S: SkinTrait<C> + 'static>(
                 background_color: "#101",
                 width: pt(11.),
                 height: pt(12.),
-                border: "{pt(0.25)} solid #545",
+                border: "{pt(0.25)} solid #868",
                 border_radius: rem(width * CARD_BORDER_RADIUS_RATIO),
                 display: "grid",
                 grid_template_columns: "50% 50%",
