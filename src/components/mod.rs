@@ -16,8 +16,8 @@ pub use anim::*;
 mod hero;
 pub use hero::*;
 
-// mod settings;
-// pub use settings::*;
+mod settings;
+pub use settings::*;
 
 mod new_game;
 pub use new_game::*;

@@ -4,7 +4,7 @@ use std::time::Duration;
 use rand::{Rng, seq::SliceRandom};
 use serde::{Deserialize, Serialize};
 
-use crate::{components::LocalStorage, game::{Board, BoardPos, Card, DECK_SIZE, DepotRole, NUM_COPIES, NUM_FREECELLS, NUM_RANKS, RANKS, Skin}};
+use crate::{components::LocalStorage, game::{Board, BoardPos, Card, DECK_SIZE, DepotRole, NUM_COPIES, NUM_FREECELLS, NUM_RANKS, RANKS, SettingsState, Skin}};
 
 /* 
  * Notes:
@@ -326,6 +326,25 @@ impl GameState {
         }
 
         if !self.is_busy() { LocalStorage.save_game_state(&self); }
+    }
+
+    pub fn new_settings_state(&self) -> SettingsState {
+        let unlock_difficulties_disabled = self.max_difficulty == Difficulty::Expert;
+        SettingsState {
+            allow_undo: self.allow_undo,
+            unlock_difficulties: unlock_difficulties_disabled,
+            unlock_difficulties_disabled,
+            skin: self.skin,
+        }
+    }
+
+    pub fn apply_settings(&mut self, settings: &SettingsState) {
+        self.allow_undo = settings.allow_undo;
+        if settings.unlock_difficulties {
+            self.max_difficulty = Difficulty::Expert;
+        }
+        self.skin = settings.skin;
+        LocalStorage.save_game_state(&self);
     }
 
     pub fn _test_rare_4_of_a_kind_move_away(&mut self) {
