@@ -4,7 +4,7 @@ use std::time::Duration;
 use rand::{Rng, seq::SliceRandom};
 use serde::{Deserialize, Serialize};
 
-use crate::game::{Board, BoardPos, Card, DECK_SIZE, DepotRole, NUM_COPIES, NUM_FREECELLS, RANKS, Skin};
+use crate::game::{Board, BoardPos, Card, DECK_SIZE, DepotRole, NUM_COPIES, NUM_FREECELLS, NUM_RANKS, RANKS, Skin};
 
 /* 
  * Notes:
@@ -101,7 +101,7 @@ impl GameState {
             skin: Skin::default(),
         };
 
-        res.new_game(Difficulty::Hard);
+        res.new_game(Difficulty::Medium);
         res
     }
 
@@ -151,7 +151,9 @@ impl GameState {
     }
 
     pub fn is_won(&self) -> bool {
-        false // todo
+        DepotRole::Shadow.range().filter(|&s| {
+            self.board.depots[s].len() == NUM_COPIES
+        }).count() == NUM_RANKS
     }
 
     pub fn undo_possible(&self) -> bool {
