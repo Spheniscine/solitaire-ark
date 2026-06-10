@@ -96,7 +96,7 @@ impl Board {
         }
     }
 
-    pub fn from_deal(mut deal: &[Card]) -> Self {
+    pub fn from_deal(deal: &[Card]) -> Self {
         use DepotRole::*;
         assert_eq!(deal.len(), DECK_SIZE);
 
@@ -126,7 +126,7 @@ impl Board {
         }
     }
 
-    pub fn top_pos(&self, depot: usize) -> BoardPos {
-        BoardPos::new(depot, self.depots[depot].len())
-    }
+    // pub fn top_pos(&self, depot: usize) -> BoardPos {
+    //     BoardPos::new(depot, self.depots[depot].len())
+    // }
 }

@@ -1,10 +1,9 @@
-use core::num;
 use std::time::Duration;
 
 use rand::{Rng, seq::SliceRandom};
 use serde::{Deserialize, Serialize};
 
-use crate::{components::LocalStorage, game::{Board, BoardPos, Card, DECK_SIZE, DepotRole, NUM_COPIES, NUM_FREECELLS, NUM_RANKS, RANKS, SettingsState, Skin}};
+use crate::{components::LocalStorage, game::{Board, BoardPos, Card, DepotRole, NUM_COPIES, NUM_FREECELLS, NUM_RANKS, RANKS, SettingsState, Skin}};
 
 /* 
  * Notes:
