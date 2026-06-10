@@ -21,6 +21,10 @@ pub fn Help(game_state: Signal<GameState>) -> Element {
                 }
 
                 p {
+                    Emph {"NOTE:"}, " To move cards, click to select a card or stack, then click the destination. ", Emph{"“Drag and drop” is not required."}
+                }
+
+                p {
                     "When four matching cards are united on the tableau, they collapse into a ",Emph {"locked stack"},". If there are locked free cells, 
                     this will unlock one of them."
                 }
